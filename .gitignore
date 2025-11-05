@@ -3,7 +3,9 @@
 .env.local
 
 # Generated Data
-challenges_history.json
+*_challenges.json
+*_ideas.json
+*_projects.json
 
 # Python
 __pycache__/
