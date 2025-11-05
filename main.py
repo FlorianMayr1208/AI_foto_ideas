@@ -56,17 +56,17 @@ WICHTIG: Erstelle eine NEUE und EINZIGARTIGE Idee, die sich von den bisherigen u
     "diy": {
         "name": "DIY-Projekt",
         "file": "diy_projects.json",
-        "system_prompt": "Du bist ein kreativer DIY-Experte, der inspirierende Ideen zum Selbermachen erstellt. Antworte immer auf Deutsch.",
-        "user_prompt": """Generiere eine kreative DIY-Idee zum Selbermachen für den {date}.
+        "system_prompt": "Du bist ein kreativer DIY-Experte für hausgemachte Lebensmittel und Getränke. Antworte immer auf Deutsch.",
+        "user_prompt": """Generiere eine kreative DIY-Idee für selbstgemachte Lebensmittel oder Getränke für den {date}.
 
 Die Idee sollte beinhalten:
 1. Einen inspirierenden Titel
-2. Was hergestellt wird (z.B. Marmelade, Seife, Deko, etc.)
-3. Benötigte Materialien/Zutaten
+2. Was hergestellt wird (z.B. Marmelade, Sirup, eingelegtes Gemüse, Limonade, Gewürzmischung, Aufstrich, Pesto, etc.)
+3. Benötigte Zutaten
 4. Kurze Anleitung oder wichtige Schritte
-5. Tipps und mögliche Variationen
+5. Tipps zur Haltbarkeit und mögliche Variationen
 
-Halte es kreativ, machbar und saisonal passend. Fokus auf hausgemachte Produkte wie Marmelade, eingelegtes Gemüse, Naturkosmetik, etc.{context}
+Halte es kreativ, machbar und saisonal passend. Fokus ausschließlich auf essbare/trinkbare Produkte: Marmeladen, Konfitüren, eingelegtes Gemüse/Obst, Sirups, Limonaden, Gewürzmischungen, Aufstriche, Pesto, fermentierte Produkte, Kräuteröle, etc.{context}
 
 WICHTIG: Erstelle eine NEUE und EINZIGARTIGE Idee, die sich von den bisherigen unterscheidet."""
     }
@@ -146,6 +146,76 @@ def generate_idea(category_key, previous_challenges):
     except Exception as e:
         raise Exception(f"Error generating idea: {str(e)}")
 
+def convert_markdown_to_html(text):
+    """Convert basic markdown formatting to HTML"""
+    import re
+    import html
+
+    # Escape HTML characters first
+    text = html.escape(text)
+
+    # Convert markdown headers (### Header -> <h4>)
+    text = re.sub(r'###\s+(.+?)(?=\n|$)', r'<h4 style="margin: 10px 0; color: #2c5aa0;">\1</h4>', text)
+
+    # Convert bold text (**text** -> <strong>)
+    text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
+
+    # Convert numbered lists (1. Item -> <ol><li>)
+    lines = text.split('\n')
+    in_ordered_list = False
+    in_unordered_list = False
+    result_lines = []
+
+    for line in lines:
+        # Check for numbered list
+        if re.match(r'^\d+\.\s+', line):
+            if not in_ordered_list:
+                result_lines.append('<ol style="margin: 10px 0; padding-left: 20px;">')
+                in_ordered_list = True
+            if in_unordered_list:
+                result_lines.append('</ul>')
+                in_unordered_list = False
+            # Remove the number and add as list item
+            item = re.sub(r'^\d+\.\s+', '', line)
+            result_lines.append(f'<li style="margin: 5px 0;">{item}</li>')
+        # Check for unordered list (- Item)
+        elif re.match(r'^-\s+', line):
+            if not in_unordered_list:
+                result_lines.append('<ul style="margin: 10px 0; padding-left: 20px;">')
+                in_unordered_list = True
+            if in_ordered_list:
+                result_lines.append('</ol>')
+                in_ordered_list = False
+            # Remove the dash and add as list item
+            item = re.sub(r'^-\s+', '', line)
+            result_lines.append(f'<li style="margin: 5px 0;">{item}</li>')
+        else:
+            # Close any open lists
+            if in_ordered_list:
+                result_lines.append('</ol>')
+                in_ordered_list = False
+            if in_unordered_list:
+                result_lines.append('</ul>')
+                in_unordered_list = False
+            # Add line with br if not empty
+            if line.strip():
+                result_lines.append(line + '<br>')
+            else:
+                result_lines.append('<br>')
+
+    # Close any remaining open lists
+    if in_ordered_list:
+        result_lines.append('</ol>')
+    if in_unordered_list:
+        result_lines.append('</ul>')
+
+    text = '\n'.join(result_lines)
+
+    # Clean up multiple <br> tags
+    text = re.sub(r'(<br>\s*){3,}', '<br><br>', text)
+
+    return text
+
 def send_email(to_email, ideas_dict):
     """Send an email with all three daily ideas"""
 
@@ -193,38 +263,59 @@ DIY-PROJEKT
 Viel Spaß beim Ausprobieren!
 """
 
+    # Convert markdown content to HTML
+    photo_html = convert_markdown_to_html(ideas_dict['photo'])
+    cooking_html = convert_markdown_to_html(ideas_dict['cooking'])
+    diy_html = convert_markdown_to_html(ideas_dict['diy'])
+
     html_content = f"""
 <html>
-  <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-    <h2>Deine täglichen Ideen für {datetime.now().strftime('%d.%m.%Y')}</h2>
+  <head>
+    <meta charset="UTF-8">
+  </head>
+  <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px;">
+    <h2 style="color: #2c5aa0; border-bottom: 2px solid #2c5aa0; padding-bottom: 10px;">
+      Deine täglichen Ideen für {datetime.now().strftime('%d.%m.%Y')}
+    </h2>
 
-    <hr>
-    <h3 style="color: #2c5aa0;">📸 FOTO-CHALLENGE</h3>
-    <div style="background-color: #f4f4f4; padding: 15px; border-radius: 5px; margin: 10px 0;">
-      {ideas_dict['photo'].replace(chr(10), '<br>')}
+    <div style="margin: 30px 0;">
+      <h3 style="color: #2c5aa0; background-color: #e8f0ff; padding: 10px; border-left: 4px solid #2c5aa0;">
+        📸 FOTO-CHALLENGE
+      </h3>
+      <div style="background-color: #f9f9f9; padding: 20px; border-radius: 5px; margin: 10px 0;">
+        {photo_html}
+      </div>
     </div>
 
-    <hr>
-    <h3 style="color: #d9534f;">🍳 KOCH-IDEE</h3>
-    <div style="background-color: #f4f4f4; padding: 15px; border-radius: 5px; margin: 10px 0;">
-      {ideas_dict['cooking'].replace(chr(10), '<br>')}
+    <div style="margin: 30px 0;">
+      <h3 style="color: #d9534f; background-color: #ffe8e8; padding: 10px; border-left: 4px solid #d9534f;">
+        🍳 KOCH-IDEE
+      </h3>
+      <div style="background-color: #f9f9f9; padding: 20px; border-radius: 5px; margin: 10px 0;">
+        {cooking_html}
+      </div>
     </div>
 
-    <hr>
-    <h3 style="color: #5cb85c;">🔨 DIY-PROJEKT</h3>
-    <div style="background-color: #f4f4f4; padding: 15px; border-radius: 5px; margin: 10px 0;">
-      {ideas_dict['diy'].replace(chr(10), '<br>')}
+    <div style="margin: 30px 0;">
+      <h3 style="color: #5cb85c; background-color: #e8ffe8; padding: 10px; border-left: 4px solid #5cb85c;">
+        🔨 DIY-PROJEKT
+      </h3>
+      <div style="background-color: #f9f9f9; padding: 20px; border-radius: 5px; margin: 10px 0;">
+        {diy_html}
+      </div>
     </div>
 
-    <hr>
-    <p style="color: #666; font-style: italic;">Viel Spaß beim Ausprobieren!</p>
+    <hr style="border: none; border-top: 1px solid #ccc; margin: 30px 0;">
+    <p style="color: #666; font-style: italic; text-align: center;">
+      Viel Spaß beim Ausprobieren!
+    </p>
   </body>
 </html>
 """
 
     # Attach both plain text and HTML versions
-    part1 = MIMEText(text_content, "plain")
-    part2 = MIMEText(html_content, "html")
+    part1 = MIMEText(text_content, "plain", "utf-8")
+    part2 = MIMEText(html_content, "html", "utf-8")
     message.attach(part1)
     message.attach(part2)
 
