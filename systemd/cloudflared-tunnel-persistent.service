@@ -1,0 +1,14 @@
+[Unit]
+Description=Cloudflare Tunnel (Persistent/Named Tunnel)
+After=network.target ai-foto-feedback.service
+
+[Service]
+Type=simple
+User=user
+# IMPORTANT: Replace 'ai-foto-feedback' with your actual tunnel name
+ExecStart=/usr/local/bin/cloudflared tunnel --no-autoupdate run ai-foto-feedback
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

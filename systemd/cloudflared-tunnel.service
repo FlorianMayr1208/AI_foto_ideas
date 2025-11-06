@@ -1,0 +1,13 @@
+[Unit]
+Description=Cloudflare Tunnel (Quick Tunnel)
+After=network.target ai-foto-feedback.service
+
+[Service]
+Type=simple
+User=user
+ExecStart=/usr/local/bin/cloudflared tunnel --url http://127.0.0.1:5000 --no-autoupdate
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

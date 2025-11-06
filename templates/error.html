@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fehler {{ error_code }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .error-code {
+            font-size: 80px;
+            font-weight: bold;
+            color: #e74c3c;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+
+        p {
+            color: #666;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .help-text {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #555;
+            text-align: left;
+        }
+
+        .help-text strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="error-code">{{ error_code }}</div>
+        <h1>Fehler aufgetreten</h1>
+        <p>{{ error_message }}</p>
+
+        {% if error_code == 403 %}
+        <div class="help-text">
+            <strong>Was bedeutet das?</strong>
+            Der Feedback-Link ist ungültig oder wurde bereits verwendet. Bitte verwende den Link direkt aus deiner E-Mail.
+        </div>
+        {% elif error_code == 404 %}
+        <div class="help-text">
+            <strong>Was bedeutet das?</strong>
+            Die angeforderte Seite wurde nicht gefunden. Überprüfe bitte den Link in deiner E-Mail.
+        </div>
+        {% elif error_code == 429 %}
+        <div class="help-text">
+            <strong>Was bedeutet das?</strong>
+            Du hast zu viele Anfragen in kurzer Zeit gesendet. Bitte warte eine Stunde und versuche es dann noch einmal.
+        </div>
+        {% elif error_code == 500 %}
+        <div class="help-text">
+            <strong>Was bedeutet das?</strong>
+            Ein interner Serverfehler ist aufgetreten. Bitte versuche es später noch einmal.
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>

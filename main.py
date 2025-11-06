@@ -14,6 +14,9 @@ from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 from openai import OpenAI
 from dotenv import load_dotenv
+import hmac
+import hashlib
+import secrets
 
 # Load environment variables
 load_dotenv()
@@ -84,13 +87,26 @@ def load_challenges(filename):
         print(f"Warning: Could not load history: {e}")
         return []
 
-def save_challenge(filename, challenge_text):
-    """Save a new challenge to the history file"""
+def generate_idea_id(category_key):
+    """Generate a unique ID for an idea"""
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    random_suffix = secrets.token_hex(4)  # 8 character random hex
+    return f"{category_key}_{date_str}_{random_suffix}"
+
+def save_challenge(filename, challenge_text, category_key):
+    """Save a new challenge to the history file with feedback structure"""
     challenges = load_challenges(filename)
 
     new_challenge = {
+        "id": generate_idea_id(category_key),
         "date": datetime.now().strftime("%Y-%m-%d"),
-        "challenge": challenge_text
+        "challenge": challenge_text,
+        "feedback": {
+            "rating": None,
+            "comment": None,
+            "implemented": None,
+            "submitted_at": None
+        }
     }
 
     challenges.append(new_challenge)
@@ -98,8 +114,29 @@ def save_challenge(filename, challenge_text):
     try:
         with open(filename, 'w', encoding='utf-8') as f:
             json.dump(challenges, f, ensure_ascii=False, indent=2)
+        return new_challenge["id"]
     except Exception as e:
         print(f"Warning: Could not save: {e}")
+        return None
+
+def generate_feedback_url(idea_id):
+    """Generate a signed feedback URL for an idea"""
+    secret_key = os.getenv('FEEDBACK_SECRET_KEY')
+    if not secret_key:
+        print("Warning: FEEDBACK_SECRET_KEY not set. Feedback links will not work!")
+        return None
+
+    # Generate HMAC signature
+    signature = hmac.new(
+        secret_key.encode(),
+        idea_id.encode(),
+        hashlib.sha256
+    ).hexdigest()[:16]
+
+    # Get base URL from environment or use default
+    base_url = os.getenv('FEEDBACK_BASE_URL', 'http://localhost:5000')
+
+    return f"{base_url}/feedback/{idea_id}/{signature}"
 
 def generate_idea(category_key, previous_challenges):
     """Generate a daily idea/challenge using GPT API"""
@@ -116,16 +153,57 @@ def generate_idea(category_key, previous_challenges):
     # Get current date for context
     today = datetime.now().strftime("%B %d, %Y")
 
-    # Prepare context from previous challenges (last 10)
+    # Prepare context from previous challenges (last 10) AND their feedback
     context = ""
+    feedback_context = ""
+
     if previous_challenges:
         recent_challenges = previous_challenges[-10:]  # Get last 10 challenges
         context = "\n\nBisher generierte Ideen (bitte NICHT wiederholen):\n"
+
+        # Collect feedback insights
+        highly_rated = []
+        poorly_rated = []
+        implemented = []
+
         for ch in recent_challenges:
             context += f"- {ch['date']}: {ch['challenge'][:100]}...\n"
 
+            # Analyze feedback if available
+            if ch.get('feedback') and ch['feedback'].get('rating'):
+                rating = ch['feedback']['rating']
+                comment = ch['feedback'].get('comment', '')
+                was_implemented = ch['feedback'].get('implemented', False)
+
+                if rating >= 4:
+                    highly_rated.append(f"{ch['challenge'][:80]}... (Bewertung: {rating}/5)")
+                elif rating <= 2:
+                    poorly_rated.append(f"{ch['challenge'][:80]}... (Bewertung: {rating}/5)")
+
+                if was_implemented:
+                    implemented.append(ch['challenge'][:80])
+
+        # Add feedback insights to prompt
+        if highly_rated or poorly_rated or implemented:
+            feedback_context = "\n\n📊 FEEDBACK-INSIGHTS (bitte beachten):\n"
+
+            if highly_rated:
+                feedback_context += "\n✅ Sehr gut bewertet (mehr davon!):\n"
+                for item in highly_rated:
+                    feedback_context += f"- {item}\n"
+
+            if implemented:
+                feedback_context += "\n🎯 Wurden umgesetzt (funktionierten gut!):\n"
+                for item in implemented[:3]:  # Top 3
+                    feedback_context += f"- {item}...\n"
+
+            if poorly_rated:
+                feedback_context += "\n⚠️ Schlecht bewertet (solche vermeiden!):\n"
+                for item in poorly_rated:
+                    feedback_context += f"- {item}\n"
+
     # Create prompt using category template
-    prompt = category["user_prompt"].format(date=today, context=context)
+    prompt = category["user_prompt"].format(date=today, context=context + feedback_context)
 
     try:
         # Call GPT API
@@ -216,8 +294,8 @@ def convert_markdown_to_html(text):
 
     return text
 
-def send_email(to_email, ideas_dict):
-    """Send an email with all three daily ideas"""
+def send_email(to_email, ideas_dict, idea_ids_dict):
+    """Send an email with all three daily ideas and feedback links"""
 
     # Get email configuration from environment variables
     smtp_server = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
@@ -227,6 +305,15 @@ def send_email(to_email, ideas_dict):
 
     if not sender_email or not sender_password:
         raise ValueError("SENDER_EMAIL and SENDER_PASSWORD must be set in environment variables")
+
+    # Generate feedback URLs
+    feedback_urls = {}
+    for category_key, idea_id in idea_ids_dict.items():
+        if idea_id:
+            url = generate_feedback_url(idea_id)
+            feedback_urls[category_key] = url if url else ""
+        else:
+            feedback_urls[category_key] = ""
 
     # Create message
     message = MIMEMultipart("alternative")
@@ -261,6 +348,11 @@ DIY-PROJEKT
 {'='*60}
 
 Viel Spaß beim Ausprobieren!
+
+--- Feedback Links ---
+Foto: {feedback_urls.get('photo', 'N/A')}
+Kochen: {feedback_urls.get('cooking', 'N/A')}
+DIY: {feedback_urls.get('diy', 'N/A')}
 """
 
     # Convert markdown content to HTML
@@ -285,6 +377,11 @@ Viel Spaß beim Ausprobieren!
       <div style="background-color: #f9f9f9; padding: 20px; border-radius: 5px; margin: 10px 0;">
         {photo_html}
       </div>
+      {f'''<div style="text-align: center; margin: 15px 0;">
+        <a href="{feedback_urls.get('photo', '')}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; padding: 12px 30px; border-radius: 25px; font-weight: 600; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
+          💬 Feedback geben
+        </a>
+      </div>''' if feedback_urls.get('photo') else ''}
     </div>
 
     <div style="margin: 30px 0;">
@@ -294,6 +391,11 @@ Viel Spaß beim Ausprobieren!
       <div style="background-color: #f9f9f9; padding: 20px; border-radius: 5px; margin: 10px 0;">
         {cooking_html}
       </div>
+      {f'''<div style="text-align: center; margin: 15px 0;">
+        <a href="{feedback_urls.get('cooking', '')}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; padding: 12px 30px; border-radius: 25px; font-weight: 600; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
+          💬 Feedback geben
+        </a>
+      </div>''' if feedback_urls.get('cooking') else ''}
     </div>
 
     <div style="margin: 30px 0;">
@@ -303,6 +405,11 @@ Viel Spaß beim Ausprobieren!
       <div style="background-color: #f9f9f9; padding: 20px; border-radius: 5px; margin: 10px 0;">
         {diy_html}
       </div>
+      {f'''<div style="text-align: center; margin: 15px 0;">
+        <a href="{feedback_urls.get('diy', '')}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; padding: 12px 30px; border-radius: 25px; font-weight: 600; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
+          💬 Feedback geben
+        </a>
+      </div>''' if feedback_urls.get('diy') else ''}
     </div>
 
     <hr style="border: none; border-top: 1px solid #ccc; margin: 30px 0;">
@@ -364,6 +471,7 @@ def main():
 
         try:
             ideas_dict = {}
+            idea_ids_dict = {}
 
             # Generate ideas for all three categories
             for category_key in ["photo", "cooking", "diy"]:
@@ -377,15 +485,16 @@ def main():
                 idea = generate_idea(category_key, previous_ideas)
                 ideas_dict[category_key] = idea
 
-                # Save the idea
-                save_challenge(category["file"], idea)
+                # Save the idea and get its ID
+                idea_id = save_challenge(category["file"], idea, category_key)
+                idea_ids_dict[category_key] = idea_id
                 print(f"✓ {category['name']} generiert und gespeichert!")
 
             print()
             print("Sende Email...")
 
-            # Send email with all ideas
-            send_email(args.email, ideas_dict)
+            # Send email with all ideas and their IDs
+            send_email(args.email, ideas_dict, idea_ids_dict)
 
             print()
             print("=" * 60)
@@ -422,8 +531,15 @@ def main():
         print()
 
         # Save the idea
-        save_challenge(category["file"], idea)
+        idea_id = save_challenge(category["file"], idea, category_key)
         print(f"✓ {category['name']} gespeichert!")
+
+        # Show feedback URL if available
+        if idea_id:
+            feedback_url = generate_feedback_url(idea_id)
+            if feedback_url:
+                print(f"📝 Feedback-URL: {feedback_url}")
+
         print()
         print("=" * 60)
 

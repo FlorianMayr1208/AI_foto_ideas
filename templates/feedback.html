@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feedback geben - AI Foto Ideas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .category-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .category-photo { background: #e3f2fd; color: #1976d2; }
+        .category-cooking { background: #ffebee; color: #c62828; }
+        .category-diy { background: #e8f5e9; color: #2e7d32; }
+
+        .idea-preview {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            border-left: 4px solid #667eea;
+            color: #555;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: #333;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .rating {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .star {
+            font-size: 40px;
+            cursor: pointer;
+            color: #ddd;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .star:hover {
+            transform: scale(1.1);
+        }
+
+        .star.active {
+            color: #ffd700;
+        }
+
+        .rating-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            margin: 0;
+            cursor: pointer;
+            font-weight: normal;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .char-counter {
+            text-align: right;
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            display: none;
+            border: 2px solid #c3e6cb;
+        }
+
+        .success h2 {
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+
+        .success p {
+            font-size: 16px;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 25px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .star {
+                font-size: 32px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📝 Feedback geben</h1>
+        <span class="category-badge category-{{ category }}">
+            {% if category == 'photo' %}📸 Foto-Challenge
+            {% elif category == 'cooking' %}🍳 Koch-Idee
+            {% elif category == 'diy' %}🔨 DIY-Projekt
+            {% endif %}
+        </span>
+
+        {% if idea_preview %}
+        <div class="idea-preview">
+            <strong>Idee:</strong> {{ idea_preview }}
+        </div>
+        {% endif %}
+
+        <div class="error-message" id="error-message"></div>
+
+        <div id="form">
+            <div class="form-group">
+                <label>Wie hat dir die Idee gefallen?</label>
+                <div class="rating" id="rating">
+                    <span class="star" data-rating="1">⭐</span>
+                    <span class="star" data-rating="2">⭐</span>
+                    <span class="star" data-rating="3">⭐</span>
+                    <span class="star" data-rating="4">⭐</span>
+                    <span class="star" data-rating="5">⭐</span>
+                </div>
+                <div class="rating-labels">
+                    <span>Nicht gut</span>
+                    <span>Ausgezeichnet</span>
+                </div>
+            </div>
+
+            <div class="checkbox-group">
+                <input type="checkbox" id="implemented">
+                <label for="implemented">✅ Ich habe diese Idee umgesetzt</label>
+            </div>
+
+            <div class="form-group">
+                <label for="comment">Kommentar (optional)</label>
+                <textarea
+                    id="comment"
+                    maxlength="1000"
+                    placeholder="Was hat dir gefallen oder nicht gefallen? Hast du Verbesserungsvorschläge?"></textarea>
+                <div class="char-counter">
+                    <span id="char-count">0</span> / 1000 Zeichen
+                </div>
+            </div>
+
+            <button onclick="submitFeedback()" id="submit-btn">
+                Feedback absenden
+            </button>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Wird gesendet...</p>
+            </div>
+        </div>
+
+        <div class="success" id="success">
+            <h2>✅ Vielen Dank!</h2>
+            <p>Dein Feedback wurde erfolgreich gespeichert und hilft uns, bessere Ideen zu erstellen.</p>
+        </div>
+    </div>
+
+    <script>
+        let selectedRating = 0;
+        const stars = document.querySelectorAll('.star');
+        const commentField = document.getElementById('comment');
+        const charCount = document.getElementById('char-count');
+
+        // Star rating functionality
+        stars.forEach(star => {
+            star.addEventListener('click', () => {
+                selectedRating = parseInt(star.dataset.rating);
+                updateStars();
+            });
+
+            star.addEventListener('mouseenter', () => {
+                const rating = parseInt(star.dataset.rating);
+                stars.forEach((s, i) => {
+                    if (i < rating) {
+                        s.style.color = '#ffd700';
+                    } else {
+                        s.style.color = selectedRating > i ? '#ffd700' : '#ddd';
+                    }
+                });
+            });
+        });
+
+        document.getElementById('rating').addEventListener('mouseleave', () => {
+            updateStars();
+        });
+
+        function updateStars() {
+            stars.forEach((s, i) => {
+                if (i < selectedRating) {
+                    s.classList.add('active');
+                } else {
+                    s.classList.remove('active');
+                }
+            });
+        }
+
+        // Character counter
+        commentField.addEventListener('input', () => {
+            charCount.textContent = commentField.value.length;
+        });
+
+        // Submit feedback
+        async function submitFeedback() {
+            const errorMessage = document.getElementById('error-message');
+            errorMessage.style.display = 'none';
+
+            // Validation
+            if (selectedRating === 0) {
+                errorMessage.textContent = 'Bitte gib eine Bewertung ab!';
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            const submitBtn = document.getElementById('submit-btn');
+            const loading = document.getElementById('loading');
+
+            submitBtn.disabled = true;
+            loading.style.display = 'block';
+
+            const data = {
+                idea_id: '{{ idea_id }}',
+                signature: '{{ signature }}',
+                rating: selectedRating,
+                comment: commentField.value.trim(),
+                implemented: document.getElementById('implemented').checked
+            };
+
+            try {
+                const response = await fetch('/api/feedback', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('form').style.display = 'none';
+                    loading.style.display = 'none';
+                    document.getElementById('success').style.display = 'block';
+                } else {
+                    throw new Error(result.error || 'Ein Fehler ist aufgetreten');
+                }
+            } catch (error) {
+                loading.style.display = 'none';
+                submitBtn.disabled = false;
+                errorMessage.textContent = error.message || 'Verbindungsfehler. Bitte versuche es später noch einmal.';
+                errorMessage.style.display = 'block';
+            }
+        }
+
+        // Allow Enter key in textarea but not to submit form
+        commentField.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.stopPropagation();
+            }
+        });
+    </script>
+</body>
+</html>
