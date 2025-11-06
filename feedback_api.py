@@ -12,6 +12,10 @@ import hashlib
 from pathlib import Path
 from functools import wraps
 import time
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 
