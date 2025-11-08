@@ -101,12 +101,7 @@ def save_challenge(filename, challenge_text, category_key):
         "id": generate_idea_id(category_key),
         "date": datetime.now().strftime("%Y-%m-%d"),
         "challenge": challenge_text,
-        "feedback": {
-            "rating": None,
-            "comment": None,
-            "implemented": None,
-            "submitted_at": None
-        }
+        "feedbacks": []  # Array to store multiple feedbacks
     }
 
     challenges.append(new_challenge)
@@ -169,19 +164,40 @@ def generate_idea(category_key, previous_challenges):
         for ch in recent_challenges:
             context += f"- {ch['date']}: {ch['challenge'][:100]}...\n"
 
-            # Analyze feedback if available
-            if ch.get('feedback') and ch['feedback'].get('rating'):
-                rating = ch['feedback']['rating']
-                comment = ch['feedback'].get('comment', '')
-                was_implemented = ch['feedback'].get('implemented', False)
+            # Analyze feedbacks if available (support both old 'feedback' and new 'feedbacks')
+            feedbacks_list = []
 
-                if rating >= 4:
-                    highly_rated.append(f"{ch['challenge'][:80]}... (Bewertung: {rating}/5)")
-                elif rating <= 2:
-                    poorly_rated.append(f"{ch['challenge'][:80]}... (Bewertung: {rating}/5)")
+            # Support new format (feedbacks array)
+            if ch.get('feedbacks') and isinstance(ch['feedbacks'], list):
+                feedbacks_list = ch['feedbacks']
+            # Support old format (single feedback object) for backward compatibility
+            elif ch.get('feedback') and ch['feedback'].get('rating'):
+                feedbacks_list = [ch['feedback']]
 
-                if was_implemented:
-                    implemented.append(ch['challenge'][:80])
+            if feedbacks_list:
+                # Calculate average rating
+                ratings = [f['rating'] for f in feedbacks_list if f.get('rating')]
+                if ratings:
+                    avg_rating = sum(ratings) / len(ratings)
+                    feedback_count = len(ratings)
+
+                    challenge_preview = ch['challenge'][:80]
+
+                    if avg_rating >= 4:
+                        highly_rated.append(
+                            f"{challenge_preview}... (⭐ {avg_rating:.1f}/5 von {feedback_count} Personen)"
+                        )
+                    elif avg_rating <= 2:
+                        poorly_rated.append(
+                            f"{challenge_preview}... (⭐ {avg_rating:.1f}/5 von {feedback_count} Personen)"
+                        )
+
+                # Check if anyone implemented it
+                implemented_count = sum(1 for f in feedbacks_list if f.get('implemented'))
+                if implemented_count > 0:
+                    implemented.append(
+                        f"{ch['challenge'][:80]}... ({implemented_count} Person(en) haben es umgesetzt)"
+                    )
 
         # Add feedback insights to prompt
         if highly_rated or poorly_rated or implemented:
@@ -294,8 +310,18 @@ def convert_markdown_to_html(text):
 
     return text
 
-def send_email(to_email, ideas_dict, idea_ids_dict):
-    """Send an email with all three daily ideas and feedback links"""
+def send_email(to_emails, ideas_dict, idea_ids_dict):
+    """Send an email with all three daily ideas and feedback links
+
+    Args:
+        to_emails: List of email addresses or single email address string
+        ideas_dict: Dictionary of generated ideas
+        idea_ids_dict: Dictionary of idea IDs
+    """
+
+    # Ensure to_emails is a list
+    if isinstance(to_emails, str):
+        to_emails = [to_emails]
 
     # Get email configuration from environment variables
     smtp_server = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
@@ -319,7 +345,7 @@ def send_email(to_email, ideas_dict, idea_ids_dict):
     message = MIMEMultipart("alternative")
     message["Subject"] = f"Deine täglichen Ideen - {datetime.now().strftime('%d.%m.%Y')}"
     message["From"] = sender_email
-    message["To"] = to_email
+    message["To"] = ", ".join(to_emails)  # Multiple recipients separated by comma
 
     # Create email body
     text_content = f"""
@@ -431,8 +457,14 @@ DIY: {feedback_urls.get('diy', 'N/A')}
         with smtplib.SMTP(smtp_server, smtp_port) as server:
             server.starttls()
             server.login(sender_email, sender_password)
-            server.sendmail(sender_email, to_email, message.as_string())
-        print(f"✓ Email erfolgreich an {to_email} gesendet!")
+            server.sendmail(sender_email, to_emails, message.as_string())
+
+        if len(to_emails) == 1:
+            print(f"✓ Email erfolgreich an {to_emails[0]} gesendet!")
+        else:
+            print(f"✓ Email erfolgreich an {len(to_emails)} Empfänger gesendet!")
+            for email in to_emails:
+                print(f"  - {email}")
     except Exception as e:
         raise Exception(f"Fehler beim Senden der Email: {str(e)}")
 
@@ -452,7 +484,8 @@ def main():
     parser.add_argument(
         "--email",
         type=str,
-        help="Email-Adresse für den Versand (nur mit 'email' Kategorie)"
+        action='append',
+        help="Email-Adresse(n) für den Versand (kann mehrmals verwendet werden oder komma-separiert)"
     )
 
     args = parser.parse_args()
@@ -460,9 +493,29 @@ def main():
     # Email mode: generate all three ideas and send via email
     if args.category == "email":
         if not args.email:
-            print("Fehler: Bitte gib eine Email-Adresse mit --email an")
-            print("Beispiel: python main.py email --email deine@email.com")
+            print("Fehler: Bitte gib mindestens eine Email-Adresse mit --email an")
+            print("Beispiele:")
+            print("  python main.py email --email deine@email.com")
+            print("  python main.py email --email email1@example.com --email email2@example.com")
+            print("  python main.py email --email 'email1@example.com,email2@example.com'")
             return 1
+
+        # Parse email addresses (support both multiple --email flags and comma-separated)
+        email_list = []
+        for email_arg in args.email:
+            # Split by comma in case user provided comma-separated emails
+            emails = [e.strip() for e in email_arg.split(',')]
+            email_list.extend(emails)
+
+        # Remove duplicates and empty strings
+        email_list = list(set(filter(None, email_list)))
+
+        if not email_list:
+            print("Fehler: Keine gültige Email-Adresse angegeben")
+            return 1
+
+        print(f"Sende an {len(email_list)} Empfänger: {', '.join(email_list)}")
+        print()
 
         print("=" * 60)
         print("TÄGLICHE IDEEN - EMAIL VERSAND")
@@ -491,10 +544,10 @@ def main():
                 print(f"✓ {category['name']} generiert und gespeichert!")
 
             print()
-            print("Sende Email...")
+            print("Sende Emails...")
 
             # Send email with all ideas and their IDs
-            send_email(args.email, ideas_dict, idea_ids_dict)
+            send_email(email_list, ideas_dict, idea_ids_dict)
 
             print()
             print("=" * 60)
