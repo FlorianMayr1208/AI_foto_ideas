@@ -117,8 +117,11 @@ def feedback_form(idea_id, signature):
     except (IndexError, ValueError):
         abort(400, "Ungültige Ideen-ID.")
 
-    # Load idea details to show preview
+    # Load idea details to show preview and feedback count
     idea_preview = None
+    feedback_count = 0
+    avg_rating = None
+
     try:
         with open(FILE_MAP[category], 'r', encoding='utf-8') as f:
             ideas = json.load(f)
@@ -128,11 +131,15 @@ def feedback_form(idea_id, signature):
                     challenge_text = idea.get('challenge', '')
                     idea_preview = challenge_text[:150] + '...' if len(challenge_text) > 150 else challenge_text
 
-                    # Check if already submitted
-                    if idea.get('feedback') and idea['feedback'].get('rating'):
-                        return render_template('feedback_already_submitted.html',
-                                             category=category,
-                                             idea_preview=idea_preview)
+                    # Count existing feedbacks
+                    feedbacks = idea.get('feedbacks', [])
+                    if isinstance(feedbacks, list):
+                        feedback_count = len(feedbacks)
+                        # Calculate average rating
+                        ratings = [f['rating'] for f in feedbacks if f.get('rating')]
+                        if ratings:
+                            avg_rating = sum(ratings) / len(ratings)
+
                     break
     except (FileNotFoundError, json.JSONDecodeError):
         pass
@@ -141,7 +148,9 @@ def feedback_form(idea_id, signature):
                           idea_id=idea_id,
                           signature=signature,
                           category=category,
-                          idea_preview=idea_preview)
+                          idea_preview=idea_preview,
+                          feedback_count=feedback_count,
+                          avg_rating=avg_rating)
 
 
 @app.route('/api/feedback', methods=['POST'])
@@ -188,6 +197,11 @@ def submit_feedback():
         if not filepath.exists():
             return jsonify({'error': 'Datei nicht gefunden.'}), 404
 
+        # Get user IP for tracking (optional)
+        user_ip = request.headers.get('CF-Connecting-IP') or \
+                  request.headers.get('X-Forwarded-For', '').split(',')[0] or \
+                  request.remote_addr
+
         # Read, update, and write atomically
         try:
             with open(filepath, 'r+', encoding='utf-8') as f:
@@ -196,20 +210,25 @@ def submit_feedback():
                 idea_found = False
                 for idea in ideas:
                     if idea.get('id') == idea_id:
-                        # Check if feedback already exists
-                        if idea.get('feedback') and idea['feedback'].get('rating'):
-                            return jsonify({
-                                'error': 'Feedback wurde bereits abgegeben.'
-                            }), 409
+                        # Ensure feedbacks array exists (for backward compatibility)
+                        if 'feedbacks' not in idea:
+                            idea['feedbacks'] = []
 
-                        # Add feedback
-                        idea['feedback'] = {
+                        # Append new feedback to array
+                        new_feedback = {
                             'rating': rating,
                             'comment': comment,
                             'implemented': implemented,
-                            'submitted_at': datetime.now().isoformat()
+                            'submitted_at': datetime.now().isoformat(),
+                            'ip_hash': hashlib.md5(user_ip.encode()).hexdigest()[:8]  # Anonymized IP
                         }
+                        idea['feedbacks'].append(new_feedback)
                         idea_found = True
+
+                        # Calculate new stats for response
+                        feedback_count = len(idea['feedbacks'])
+                        avg_rating = sum(f['rating'] for f in idea['feedbacks']) / feedback_count
+
                         break
 
                 if not idea_found:
@@ -222,7 +241,9 @@ def submit_feedback():
 
             return jsonify({
                 'status': 'success',
-                'message': 'Feedback erfolgreich gespeichert!'
+                'message': 'Feedback erfolgreich gespeichert!',
+                'feedback_count': feedback_count,
+                'avg_rating': round(avg_rating, 1)
             })
 
         except json.JSONDecodeError:

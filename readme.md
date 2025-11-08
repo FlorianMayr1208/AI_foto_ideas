@@ -71,7 +71,14 @@ python main.py email --email friend1@example.com --email "friend2@example.com,fr
 
 ## 💬 Feedback System
 
-The feedback system allows users to rate and comment on ideas, helping GPT generate better suggestions over time.
+The feedback system allows **multiple users** to rate and comment on the same ideas, creating a collective intelligence that helps GPT generate better suggestions over time.
+
+### Key Features
+- 👥 **Multiple Feedbacks per Idea** - Everyone can give feedback on the same idea
+- 📊 **Average Ratings** - See what the group thinks (e.g., ⭐ 4.3/5 from 3 people)
+- 💭 **Individual Comments** - Each person can share their unique perspective
+- 🔒 **Same Link for All** - Share one feedback link with multiple people
+- 📈 **Real-time Stats** - Shows feedback count and average rating
 
 ### Setup Instructions
 
@@ -86,12 +93,13 @@ See **[CLOUDFLARE_TUNNEL_SETUP.md](CLOUDFLARE_TUNNEL_SETUP.md)** for complete se
 ## 📊 How It Works
 
 1. **Generate Ideas** - GPT-4 creates unique daily challenges
-2. **Send Emails** - Ideas delivered to your inbox with feedback buttons
-3. **Collect Feedback** - Users rate ideas (1-5 stars) and add comments
-4. **Learn & Improve** - GPT uses feedback to generate better ideas:
-   - ✅ More ideas similar to highly-rated ones
-   - ⚠️ Avoids patterns from poorly-rated ideas
-   - 🎯 Prioritizes implemented suggestions
+2. **Send Emails** - Ideas delivered to multiple recipients with feedback buttons
+3. **Collect Feedback** - Each person can rate ideas (1-5 stars) and add comments
+4. **Aggregate Insights** - System calculates average ratings and tracks implementations
+5. **Learn & Improve** - GPT uses collective feedback to generate better ideas:
+   - ✅ More ideas similar to highly-rated ones (avg ≥ 4 stars)
+   - ⚠️ Avoids patterns from poorly-rated ideas (avg ≤ 2 stars)
+   - 🎯 Prioritizes ideas that people actually implemented
 
 ---
 

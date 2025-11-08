@@ -101,12 +101,7 @@ def save_challenge(filename, challenge_text, category_key):
         "id": generate_idea_id(category_key),
         "date": datetime.now().strftime("%Y-%m-%d"),
         "challenge": challenge_text,
-        "feedback": {
-            "rating": None,
-            "comment": None,
-            "implemented": None,
-            "submitted_at": None
-        }
+        "feedbacks": []  # Array to store multiple feedbacks
     }
 
     challenges.append(new_challenge)
@@ -169,19 +164,40 @@ def generate_idea(category_key, previous_challenges):
         for ch in recent_challenges:
             context += f"- {ch['date']}: {ch['challenge'][:100]}...\n"
 
-            # Analyze feedback if available
-            if ch.get('feedback') and ch['feedback'].get('rating'):
-                rating = ch['feedback']['rating']
-                comment = ch['feedback'].get('comment', '')
-                was_implemented = ch['feedback'].get('implemented', False)
+            # Analyze feedbacks if available (support both old 'feedback' and new 'feedbacks')
+            feedbacks_list = []
 
-                if rating >= 4:
-                    highly_rated.append(f"{ch['challenge'][:80]}... (Bewertung: {rating}/5)")
-                elif rating <= 2:
-                    poorly_rated.append(f"{ch['challenge'][:80]}... (Bewertung: {rating}/5)")
+            # Support new format (feedbacks array)
+            if ch.get('feedbacks') and isinstance(ch['feedbacks'], list):
+                feedbacks_list = ch['feedbacks']
+            # Support old format (single feedback object) for backward compatibility
+            elif ch.get('feedback') and ch['feedback'].get('rating'):
+                feedbacks_list = [ch['feedback']]
 
-                if was_implemented:
-                    implemented.append(ch['challenge'][:80])
+            if feedbacks_list:
+                # Calculate average rating
+                ratings = [f['rating'] for f in feedbacks_list if f.get('rating')]
+                if ratings:
+                    avg_rating = sum(ratings) / len(ratings)
+                    feedback_count = len(ratings)
+
+                    challenge_preview = ch['challenge'][:80]
+
+                    if avg_rating >= 4:
+                        highly_rated.append(
+                            f"{challenge_preview}... (⭐ {avg_rating:.1f}/5 von {feedback_count} Personen)"
+                        )
+                    elif avg_rating <= 2:
+                        poorly_rated.append(
+                            f"{challenge_preview}... (⭐ {avg_rating:.1f}/5 von {feedback_count} Personen)"
+                        )
+
+                # Check if anyone implemented it
+                implemented_count = sum(1 for f in feedbacks_list if f.get('implemented'))
+                if implemented_count > 0:
+                    implemented.append(
+                        f"{ch['challenge'][:80]}... ({implemented_count} Person(en) haben es umgesetzt)"
+                    )
 
         # Add feedback insights to prompt
         if highly_rated or poorly_rated or implemented:

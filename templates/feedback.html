@@ -60,6 +60,23 @@
             line-height: 1.6;
         }
 
+        .feedback-stats {
+            background: #e8f4fd;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+            color: #1565c0;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .feedback-stats strong {
+            color: #0d47a1;
+        }
+
         .form-group {
             margin-bottom: 25px;
         }
@@ -257,6 +274,18 @@
         </div>
         {% endif %}
 
+        {% if feedback_count > 0 %}
+        <div class="feedback-stats">
+            <span>👥</span>
+            <span>
+                <strong>{{ feedback_count }}</strong> {{ 'Person hat' if feedback_count == 1 else 'Personen haben' }} bereits Feedback gegeben
+                {% if avg_rating %}
+                    (⭐ Durchschnitt: <strong>{{ "%.1f"|format(avg_rating) }}/5</strong>)
+                {% endif %}
+            </span>
+        </div>
+        {% endif %}
+
         <div class="error-message" id="error-message"></div>
 
         <div id="form">
@@ -303,7 +332,7 @@
 
         <div class="success" id="success">
             <h2>✅ Vielen Dank!</h2>
-            <p>Dein Feedback wurde erfolgreich gespeichert und hilft uns, bessere Ideen zu erstellen.</p>
+            <p id="success-text">Dein Feedback wurde erfolgreich gespeichert und hilft uns, bessere Ideen zu erstellen.</p>
         </div>
     </div>
 
@@ -391,7 +420,14 @@
                 if (response.ok) {
                     document.getElementById('form').style.display = 'none';
                     loading.style.display = 'none';
-                    document.getElementById('success').style.display = 'block';
+
+                    // Update success message with stats
+                    const successDiv = document.getElementById('success');
+                    const successText = document.getElementById('success-text');
+                    if (result.feedback_count && result.avg_rating) {
+                        successText.textContent = `Dein Feedback wurde erfolgreich gespeichert! Insgesamt haben jetzt ${result.feedback_count} Person(en) Feedback gegeben (⭐ Durchschnitt: ${result.avg_rating}/5).`;
+                    }
+                    successDiv.style.display = 'block';
                 } else {
                     throw new Error(result.error || 'Ein Fehler ist aufgetreten');
                 }
