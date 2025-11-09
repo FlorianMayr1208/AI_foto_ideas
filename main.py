@@ -49,6 +49,7 @@ Die Idee sollte beinhalten:
 1. Einen appetitlichen Titel
 2. Eine kurze Beschreibung des Gerichts
 3. Hauptzutaten (ca. 5-7)
+4. Eine kurze Anleitung für die Zubereitung
 4. Besondere Tipps oder Variationen
 5. Schwierigkeitsgrad und ungefähre Zeit
 
