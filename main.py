@@ -225,7 +225,7 @@ def generate_idea(category_key, previous_challenges):
     try:
         # Call GPT API
         response = client.chat.completions.create(
-            model="gpt-5-mini",
+            model="gpt-5-mini"‚
             messages=[
                 {"role": "system", "content": category["system_prompt"]},
                 {"role": "user", "content": prompt}
