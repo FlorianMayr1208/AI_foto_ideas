@@ -9,7 +9,8 @@ This project generates unique daily challenges and ideas, sends them via email, 
 ## ✨ Features
 
 - 📸 **Photo Challenges** - Creative photography ideas
-- 🍳 **Cooking Ideas** - Delicious recipes and cooking inspiration
+- 🥬 **Vegetarian Cooking** - Delicious vegetarian and vegan recipes
+- 🍖 **Meat Cooking** - Recipes with meat or fish
 - 🔨 **DIY Projects** - Homemade food and drink projects
 - 📧 **Email Delivery** - Send to multiple recipients
 - 💬 **Feedback System** - Collect user ratings and comments
@@ -43,8 +44,11 @@ Add your API keys and configuration.
 # Generate a photo challenge
 python main.py photo
 
-# Generate a cooking idea
-python main.py cooking
+# Generate a vegetarian cooking idea
+python main.py cooking_veggie
+
+# Generate a cooking idea with meat
+python main.py cooking_meat
 
 # Generate a DIY project
 python main.py diy

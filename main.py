@@ -39,22 +39,41 @@ Halte es unterhaltsam, erreichbar und geeignet für Fotografen aller Erfahrungss
 
 WICHTIG: Erstelle eine NEUE und EINZIGARTIGE Herausforderung, die sich von den bisherigen unterscheidet."""
     },
-    "cooking": {
-        "name": "Koch-Idee",
-        "file": "cooking_ideas.json",
-        "system_prompt": "Du bist ein kreativer Koch und Ernährungsberater, der inspirierende tägliche Kochideen erstellt. Antworte immer auf Deutsch.",
-        "user_prompt": """Generiere eine kreative und leckere tägliche Kochidee für den {date}.
+    "cooking_veggie": {
+        "name": "Vegetarische Koch-Idee",
+        "file": "cooking_veggie_ideas.json",
+        "system_prompt": "Du bist ein kreativer vegetarischer Koch und Ernährungsberater, der inspirierende vegetarische und vegane Kochideen erstellt. Antworte immer auf Deutsch.",
+        "user_prompt": """Generiere eine kreative und leckere vegetarische/vegane Kochidee für den {date}.
 
 Die Idee sollte beinhalten:
 1. Einen appetitlichen Titel
 2. Eine kurze Beschreibung des Gerichts
-3. Hauptzutaten (ca. 5-7)
+3. Hauptzutaten (ca. 5-7) - ausschließlich vegetarisch/vegan
 4. Besondere Tipps oder Variationen
 5. Schwierigkeitsgrad und ungefähre Zeit
 
-Halte es abwechslungsreich, saisonal wenn möglich, und für Hobbyköche machbar.{context}
+WICHTIG:
+- Komplett vegetarisch oder vegan (kein Fleisch, kein Fisch)
+- Halte es abwechslungsreich, saisonal wenn möglich, und für Hobbyköche machbar
+- Erstelle eine NEUE und EINZIGARTIGE Idee, die sich von den bisherigen unterscheidet{context}"""
+    },
+    "cooking_meat": {
+        "name": "Koch-Idee mit Fleisch",
+        "file": "cooking_meat_ideas.json",
+        "system_prompt": "Du bist ein kreativer Koch und Ernährungsberater, der inspirierende Kochideen mit Fleisch oder Fisch erstellt. Antworte immer auf Deutsch.",
+        "user_prompt": """Generiere eine kreative und leckere Kochidee mit Fleisch oder Fisch für den {date}.
 
-WICHTIG: Erstelle eine NEUE und EINZIGARTIGE Idee, die sich von den bisherigen unterscheidet."""
+Die Idee sollte beinhalten:
+1. Einen appetitlichen Titel
+2. Eine kurze Beschreibung des Gerichts
+3. Hauptzutaten (ca. 5-7) - muss Fleisch oder Fisch enthalten
+4. Besondere Tipps oder Variationen
+5. Schwierigkeitsgrad und ungefähre Zeit
+
+WICHTIG:
+- Muss Fleisch (Rind, Schwein, Huhn, Lamm, etc.) oder Fisch/Meeresfrüchte enthalten
+- Halte es abwechslungsreich, saisonal wenn möglich, und für Hobbyköche machbar
+- Erstelle eine NEUE und EINZIGARTIGE Idee, die sich von den bisherigen unterscheidet{context}"""
     },
     "diy": {
         "name": "DIY-Projekt",
@@ -360,10 +379,16 @@ FOTO-CHALLENGE
 {ideas_dict['photo']}
 
 {'='*60}
-KOCH-IDEE
+VEGETARISCHE KOCH-IDEE
 {'='*60}
 
-{ideas_dict['cooking']}
+{ideas_dict['cooking_veggie']}
+
+{'='*60}
+KOCH-IDEE MIT FLEISCH
+{'='*60}
+
+{ideas_dict['cooking_meat']}
 
 {'='*60}
 DIY-PROJEKT
@@ -377,13 +402,15 @@ Viel Spaß beim Ausprobieren!
 
 --- Feedback Links ---
 Foto: {feedback_urls.get('photo', 'N/A')}
-Kochen: {feedback_urls.get('cooking', 'N/A')}
+Vegetarisch: {feedback_urls.get('cooking_veggie', 'N/A')}
+Mit Fleisch: {feedback_urls.get('cooking_meat', 'N/A')}
 DIY: {feedback_urls.get('diy', 'N/A')}
 """
 
     # Convert markdown content to HTML
     photo_html = convert_markdown_to_html(ideas_dict['photo'])
-    cooking_html = convert_markdown_to_html(ideas_dict['cooking'])
+    cooking_veggie_html = convert_markdown_to_html(ideas_dict['cooking_veggie'])
+    cooking_meat_html = convert_markdown_to_html(ideas_dict['cooking_meat'])
     diy_html = convert_markdown_to_html(ideas_dict['diy'])
 
     html_content = f"""
@@ -411,21 +438,35 @@ DIY: {feedback_urls.get('diy', 'N/A')}
     </div>
 
     <div style="margin: 30px 0;">
-      <h3 style="color: #d9534f; background-color: #ffe8e8; padding: 10px; border-left: 4px solid #d9534f;">
-        🍳 KOCH-IDEE
+      <h3 style="color: #4caf50; background-color: #e8f5e9; padding: 10px; border-left: 4px solid #4caf50;">
+        🥬 VEGETARISCHE KOCH-IDEE
       </h3>
       <div style="background-color: #f9f9f9; padding: 20px; border-radius: 5px; margin: 10px 0;">
-        {cooking_html}
+        {cooking_veggie_html}
       </div>
       {f'''<div style="text-align: center; margin: 15px 0;">
-        <a href="{feedback_urls.get('cooking', '')}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; padding: 12px 30px; border-radius: 25px; font-weight: 600; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
+        <a href="{feedback_urls.get('cooking_veggie', '')}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; padding: 12px 30px; border-radius: 25px; font-weight: 600; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
           💬 Feedback geben
         </a>
-      </div>''' if feedback_urls.get('cooking') else ''}
+      </div>''' if feedback_urls.get('cooking_veggie') else ''}
     </div>
 
     <div style="margin: 30px 0;">
-      <h3 style="color: #5cb85c; background-color: #e8ffe8; padding: 10px; border-left: 4px solid #5cb85c;">
+      <h3 style="color: #d9534f; background-color: #ffe8e8; padding: 10px; border-left: 4px solid #d9534f;">
+        🍖 KOCH-IDEE MIT FLEISCH
+      </h3>
+      <div style="background-color: #f9f9f9; padding: 20px; border-radius: 5px; margin: 10px 0;">
+        {cooking_meat_html}
+      </div>
+      {f'''<div style="text-align: center; margin: 15px 0;">
+        <a href="{feedback_urls.get('cooking_meat', '')}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; padding: 12px 30px; border-radius: 25px; font-weight: 600; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
+          💬 Feedback geben
+        </a>
+      </div>''' if feedback_urls.get('cooking_meat') else ''}
+    </div>
+
+    <div style="margin: 30px 0;">
+      <h3 style="color: #ff9800; background-color: #fff3e0; padding: 10px; border-left: 4px solid #ff9800;">
         🔨 DIY-PROJEKT
       </h3>
       <div style="background-color: #f9f9f9; padding: 20px; border-radius: 5px; margin: 10px 0;">
@@ -478,8 +519,8 @@ def main():
     parser.add_argument(
         "category",
         nargs="?",
-        choices=["photo", "cooking", "diy", "email"],
-        help="Kategorie: photo (Fotografie), cooking (Kochen), diy (Selbermachen), email (alle per Email senden)"
+        choices=["photo", "cooking_veggie", "cooking_meat", "diy", "email"],
+        help="Kategorie: photo (Fotografie), cooking_veggie (Vegetarisch), cooking_meat (mit Fleisch), diy (Selbermachen), email (alle per Email senden)"
     )
     parser.add_argument(
         "--email",
@@ -526,8 +567,8 @@ def main():
             ideas_dict = {}
             idea_ids_dict = {}
 
-            # Generate ideas for all three categories
-            for category_key in ["photo", "cooking", "diy"]:
+            # Generate ideas for all four categories
+            for category_key in ["photo", "cooking_veggie", "cooking_meat", "diy"]:
                 category = CATEGORIES[category_key]
                 print(f"Generiere {category['name']}...")
 

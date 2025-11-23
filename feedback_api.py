@@ -24,7 +24,8 @@ if not SECRET_KEY:
 BASE_DIR = Path(__file__).parent
 FILE_MAP = {
     'photo': BASE_DIR / 'photo_challenges.json',
-    'cooking': BASE_DIR / 'cooking_ideas.json',
+    'cooking_veggie': BASE_DIR / 'cooking_veggie_ideas.json',
+    'cooking_meat': BASE_DIR / 'cooking_meat_ideas.json',
     'diy': BASE_DIR / 'diy_projects.json'
 }
 

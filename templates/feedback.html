@@ -46,8 +46,9 @@
         }
 
         .category-photo { background: #e3f2fd; color: #1976d2; }
-        .category-cooking { background: #ffebee; color: #c62828; }
-        .category-diy { background: #e8f5e9; color: #2e7d32; }
+        .category-cooking_veggie { background: #e8f5e9; color: #4caf50; }
+        .category-cooking_meat { background: #ffebee; color: #c62828; }
+        .category-diy { background: #fff3e0; color: #ff9800; }
 
         .idea-preview {
             background: #f8f9fa;
@@ -263,7 +264,8 @@
         <h1>📝 Feedback geben</h1>
         <span class="category-badge category-{{ category }}">
             {% if category == 'photo' %}📸 Foto-Challenge
-            {% elif category == 'cooking' %}🍳 Koch-Idee
+            {% elif category == 'cooking_veggie' %}🥬 Vegetarische Koch-Idee
+            {% elif category == 'cooking_meat' %}🍖 Koch-Idee mit Fleisch
             {% elif category == 'diy' %}🔨 DIY-Projekt
             {% endif %}
         </span>
