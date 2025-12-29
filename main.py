@@ -70,7 +70,7 @@ Die Idee sollte beinhalten:
 4. Kurze Anleitung oder wichtige Schritte
 5. Tipps zur Haltbarkeit und mögliche Variationen
 
-Halte es kreativ, machbar und saisonal passend. Fokus ausschließlich auf essbare/trinkbare Produkte: Marmeladen, Konfitueren, eingelegtes Gem�uese/Obst, Sirups, Limonaden, Gewuerzmischungen, Aufstriche, Pesto, fermentierte Produkte, Kräuteröle, etc.{context}
+Halte es kreativ, machbar und saisonal passend. Fokus ausschließlich auf essbare/trinkbare Produkte: Marmeladen, Konfitueren, eingelegtes Gem�uese/Obst, Sirups, Limonaden, Gewuerzmischungen, Aufstriche, Pesto, fermentierte Produkte, Kräuteröle, etc.{context}
 
 WICHTIG: Erstelle eine NEUE und EINZIGARTIGE Idee, die sich von den bisherigen unterscheidet. Schreib die Ideen in Oesterreichischem Deutsch."""
     }

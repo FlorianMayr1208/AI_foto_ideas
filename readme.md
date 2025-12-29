@@ -1,6 +1,6 @@
 # AI Foto Ideas
 
-**Automatically generate and send daily creative ideas for photography, cooking, and DIY projects using GPT-4!**
+**Automatically generate and send daily creative ideas for photography, cooking, and DIY projects using GPT-5!**
 
 This project generates unique daily challenges and ideas, sends them via email, and collects user feedback to continuously improve future suggestions.
 
