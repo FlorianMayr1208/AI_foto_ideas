@@ -130,6 +130,8 @@ def feedback_form(idea_id, signature):
     idea_preview = None
     feedback_count = 0
     avg_rating = None
+    imported_to_cookbook = False
+    import_count = 0
 
     try:
         with open(FILE_MAP[category], 'r', encoding='utf-8') as f:
@@ -149,6 +151,10 @@ def feedback_form(idea_id, signature):
                         if ratings:
                             avg_rating = sum(ratings) / len(ratings)
 
+                    # Get import status
+                    imported_to_cookbook = idea.get('imported_to_cookbook', False)
+                    import_count = idea.get('import_count', 0)
+
                     break
     except (FileNotFoundError, json.JSONDecodeError):
         pass
@@ -159,7 +165,9 @@ def feedback_form(idea_id, signature):
                           category=category,
                           idea_preview=idea_preview,
                           feedback_count=feedback_count,
-                          avg_rating=avg_rating)
+                          avg_rating=avg_rating,
+                          imported_to_cookbook=imported_to_cookbook,
+                          import_count=import_count)
 
 
 @app.route('/api/feedback', methods=['POST'])
@@ -333,61 +341,100 @@ def import_recipe():
             return jsonify({'error': 'Datei nicht gefunden.'}), 404
 
         try:
-            with open(filepath, 'r', encoding='utf-8') as f:
+            with open(filepath, 'r+', encoding='utf-8') as f:
                 ideas = json.load(f)
 
-            idea_text = None
-            for idea in ideas:
-                if idea.get('id') == idea_id:
-                    idea_text = idea.get('challenge', '')
-                    break
+                idea_text = None
+                idea_index = None
+                already_imported = False
+                import_count = 0
 
-            if not idea_text:
-                return jsonify({'error': 'Koch-Idee nicht gefunden.'}), 404
+                for idx, idea in enumerate(ideas):
+                    if idea.get('id') == idea_id:
+                        idea_text = idea.get('challenge', '')
+                        idea_index = idx
 
-            # Prepare request to cookbook API
-            cookbook_payload = {
-                'text': idea_text
-            }
+                        # Check if already imported
+                        if idea.get('imported_to_cookbook'):
+                            already_imported = True
+                            import_count = idea.get('import_count', 1)
 
-            # Add API key if available
-            if COOKBOOK_OPENAI_KEY:
-                cookbook_payload['apiKey'] = COOKBOOK_OPENAI_KEY
+                        break
 
-            # Call the cookbook API
-            app.logger.info(f"Calling cookbook API at {COOKBOOK_API_URL}")
-            response = requests.post(
-                COOKBOOK_API_URL,
-                json=cookbook_payload,
-                timeout=30  # 30 second timeout
-            )
+                if not idea_text:
+                    return jsonify({'error': 'Koch-Idee nicht gefunden.'}), 404
 
-            # Check if request was successful
-            if response.status_code != 200:
-                error_msg = 'Fehler beim Importieren in das Kochbuch.'
-                try:
-                    error_data = response.json()
-                    if 'error' in error_data:
-                        error_msg = error_data['error']
-                except:
-                    pass
-                app.logger.error(f"Cookbook API error: {response.status_code} - {response.text}")
-                return jsonify({'error': error_msg}), 500
+                # Block import if already imported
+                if already_imported and import_count > 0:
+                    return jsonify({
+                        'error': 'Dieses Rezept wurde bereits ins Kochbuch importiert.',
+                        'already_imported': True,
+                        'import_count': import_count
+                    }), 400
 
-            # Parse response
-            cookbook_response = response.json()
+                # Prepare request to cookbook API
+                cookbook_payload = {
+                    'text': idea_text
+                }
 
-            if not cookbook_response.get('success'):
+                # Add API key if available
+                if COOKBOOK_OPENAI_KEY:
+                    cookbook_payload['apiKey'] = COOKBOOK_OPENAI_KEY
+
+                # Call the cookbook API
+                app.logger.info(f"Calling cookbook API at {COOKBOOK_API_URL}")
+                response = requests.post(
+                    COOKBOOK_API_URL,
+                    json=cookbook_payload,
+                    timeout=30  # 30 second timeout
+                )
+
+                # Check if request was successful
+                if response.status_code != 200:
+                    error_msg = 'Fehler beim Importieren in das Kochbuch.'
+                    try:
+                        error_data = response.json()
+                        if 'error' in error_data:
+                            error_msg = error_data['error']
+                    except:
+                        pass
+                    app.logger.error(f"Cookbook API error: {response.status_code} - {response.text}")
+                    return jsonify({'error': error_msg}), 500
+
+                # Parse response
+                cookbook_response = response.json()
+
+                if not cookbook_response.get('success'):
+                    return jsonify({
+                        'error': 'Das Kochbuch konnte das Rezept nicht verarbeiten.'
+                    }), 500
+
+                # Update the idea with import status
+                if idea_index is not None:
+                    ideas[idea_index]['imported_to_cookbook'] = True
+                    ideas[idea_index]['last_imported_at'] = datetime.now().isoformat()
+
+                    # Track import count
+                    if 'import_count' not in ideas[idea_index]:
+                        ideas[idea_index]['import_count'] = 1
+                    else:
+                        ideas[idea_index]['import_count'] += 1
+
+                    import_count = ideas[idea_index]['import_count']
+
+                    # Write back to file
+                    f.seek(0)
+                    json.dump(ideas, f, indent=2, ensure_ascii=False)
+                    f.truncate()
+
+                # Return the parsed recipe with import status
                 return jsonify({
-                    'error': 'Das Kochbuch konnte das Rezept nicht verarbeiten.'
-                }), 500
-
-            # Return the parsed recipe
-            return jsonify({
-                'status': 'success',
-                'message': 'Rezept erfolgreich importiert!',
-                'recipe': cookbook_response.get('recipe', {})
-            })
+                    'status': 'success',
+                    'message': 'Rezept erfolgreich importiert!' if not already_imported else 'Rezept erneut importiert!',
+                    'recipe': cookbook_response.get('recipe', {}),
+                    'already_imported': already_imported,
+                    'import_count': import_count
+                })
 
         except json.JSONDecodeError:
             return jsonify({'error': 'Fehler beim Lesen der Datei.'}), 500

@@ -77,6 +77,29 @@
             color: #0d47a1;
         }
 
+        .import-status {
+            background: #fff3cd;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ffc107;
+            color: #856404;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .import-status.success {
+            background: #d4edda;
+            border-left-color: #28a745;
+            color: #155724;
+        }
+
+        .import-status strong {
+            color: inherit;
+        }
+
         .form-group {
             margin-bottom: 25px;
         }
@@ -337,6 +360,15 @@
         </div>
         {% endif %}
 
+        {% if category == 'cooking' and imported_to_cookbook %}
+        <div class="import-status success" id="import-status">
+            <span>✅</span>
+            <span>
+                <strong>Bereits importiert!</strong> Dieses Rezept wurde ins Kochbuch importiert
+            </span>
+        </div>
+        {% endif %}
+
         <div class="error-message" id="error-message"></div>
 
         <div id="form">
@@ -376,8 +408,12 @@
             </button>
 
             {% if category == 'cooking' %}
-            <button onclick="importRecipe()" id="import-btn" class="import-btn">
-                📖 In Kochbuch importieren
+            <button onclick="importRecipe()" id="import-btn" class="import-btn" {% if imported_to_cookbook %}disabled{% endif %}>
+                {% if imported_to_cookbook %}
+                    ✅ Bereits importiert
+                {% else %}
+                    📖 In Kochbuch importieren
+                {% endif %}
             </button>
             {% endif %}
 
@@ -522,6 +558,11 @@
             const importLoading = document.getElementById('import-loading');
             const recipePreview = document.getElementById('recipe-preview');
 
+            // Don't allow import if button is disabled
+            if (importBtn.disabled) {
+                return;
+            }
+
             importBtn.disabled = true;
             importLoading.style.display = 'block';
             recipePreview.style.display = 'none';
@@ -545,14 +586,30 @@
                 importLoading.style.display = 'none';
 
                 if (response.ok && result.recipe) {
+                    // Update or create import status badge
+                    updateImportStatus(result.import_count, result.already_imported);
+
                     // Display the imported recipe
                     displayRecipe(result.recipe);
                     recipePreview.style.display = 'block';
 
+                    // Update button to disabled state
+                    importBtn.textContent = '✅ Bereits importiert';
+                    importBtn.disabled = true;
+
                     // Scroll to recipe preview
                     recipePreview.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 } else {
-                    throw new Error(result.error || 'Ein Fehler ist aufgetreten');
+                    // Handle error - show error message but keep button disabled if already imported
+                    if (result.already_imported) {
+                        importBtn.textContent = '✅ Bereits importiert';
+                        importBtn.disabled = true;
+                        errorMessage.textContent = result.error || 'Dieses Rezept wurde bereits importiert.';
+                    } else {
+                        importBtn.disabled = false;
+                        errorMessage.textContent = result.error || 'Ein Fehler ist aufgetreten';
+                    }
+                    errorMessage.style.display = 'block';
                 }
             } catch (error) {
                 importLoading.style.display = 'none';
@@ -560,6 +617,29 @@
                 errorMessage.textContent = error.message || 'Verbindungsfehler. Bitte versuche es später noch einmal.';
                 errorMessage.style.display = 'block';
             }
+        }
+
+        // Update import status badge
+        function updateImportStatus(importCount, wasAlreadyImported) {
+            let statusDiv = document.getElementById('import-status');
+
+            // Create the status div if it doesn't exist
+            if (!statusDiv) {
+                statusDiv = document.createElement('div');
+                statusDiv.id = 'import-status';
+                statusDiv.className = 'import-status success';
+
+                // Insert before error message
+                const errorMessage = document.getElementById('error-message');
+                errorMessage.parentNode.insertBefore(statusDiv, errorMessage);
+            }
+
+            // Update the content - always show as already imported (count is always >= 1)
+            let statusText = '';
+            statusText = '<span>✅</span><span><strong>Bereits importiert!</strong> Dieses Rezept wurde ins Kochbuch importiert</span>';
+
+            statusDiv.innerHTML = statusText;
+            statusDiv.style.display = 'flex';
         }
 
         // Display imported recipe
