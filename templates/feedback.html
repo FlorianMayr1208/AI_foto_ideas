@@ -193,6 +193,57 @@
             transform: none;
         }
 
+        .import-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            margin-top: 15px;
+        }
+
+        .import-btn:hover {
+            box-shadow: 0 5px 20px rgba(245, 87, 108, 0.4);
+        }
+
+        .recipe-preview {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #f5576c;
+            display: none;
+        }
+
+        .recipe-preview h3 {
+            color: #d9534f;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .recipe-section {
+            margin: 15px 0;
+        }
+
+        .recipe-section h4 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .recipe-section ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .recipe-section li {
+            padding: 5px 0;
+            color: #555;
+        }
+
+        .recipe-section li:before {
+            content: "• ";
+            color: #f5576c;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
         .success {
             background: #d4edda;
             color: #155724;
@@ -324,15 +375,31 @@
                 Feedback absenden
             </button>
 
+            {% if category == 'cooking' %}
+            <button onclick="importRecipe()" id="import-btn" class="import-btn">
+                📖 In Kochbuch importieren
+            </button>
+            {% endif %}
+
             <div class="loading" id="loading">
                 <div class="spinner"></div>
                 <p>Wird gesendet...</p>
+            </div>
+
+            <div class="loading" id="import-loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Wird importiert...</p>
             </div>
         </div>
 
         <div class="success" id="success">
             <h2>✅ Vielen Dank!</h2>
             <p id="success-text">Dein Feedback wurde erfolgreich gespeichert und hilft uns, bessere Ideen zu erstellen.</p>
+        </div>
+
+        <div class="recipe-preview" id="recipe-preview">
+            <h3>🎉 Rezept erfolgreich importiert!</h3>
+            <div id="recipe-content"></div>
         </div>
     </div>
 
@@ -445,6 +512,104 @@
                 e.stopPropagation();
             }
         });
+
+        // Import recipe to cookbook
+        async function importRecipe() {
+            const errorMessage = document.getElementById('error-message');
+            errorMessage.style.display = 'none';
+
+            const importBtn = document.getElementById('import-btn');
+            const importLoading = document.getElementById('import-loading');
+            const recipePreview = document.getElementById('recipe-preview');
+
+            importBtn.disabled = true;
+            importLoading.style.display = 'block';
+            recipePreview.style.display = 'none';
+
+            const data = {
+                idea_id: '{{ idea_id }}',
+                signature: '{{ signature }}'
+            };
+
+            try {
+                const response = await fetch('/api/import-recipe', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                importLoading.style.display = 'none';
+
+                if (response.ok && result.recipe) {
+                    // Display the imported recipe
+                    displayRecipe(result.recipe);
+                    recipePreview.style.display = 'block';
+
+                    // Scroll to recipe preview
+                    recipePreview.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                    throw new Error(result.error || 'Ein Fehler ist aufgetreten');
+                }
+            } catch (error) {
+                importLoading.style.display = 'none';
+                importBtn.disabled = false;
+                errorMessage.textContent = error.message || 'Verbindungsfehler. Bitte versuche es später noch einmal.';
+                errorMessage.style.display = 'block';
+            }
+        }
+
+        // Display imported recipe
+        function displayRecipe(recipe) {
+            const recipeContent = document.getElementById('recipe-content');
+
+            let html = '';
+
+            // Title
+            if (recipe.title) {
+                html += `<div class="recipe-section"><h4>📝 ${recipe.title}</h4></div>`;
+            }
+
+            // Description
+            if (recipe.description) {
+                html += `<div class="recipe-section"><p>${recipe.description}</p></div>`;
+            }
+
+            // Meta info
+            if (recipe.prepTime || recipe.cookTime || recipe.servings) {
+                html += '<div class="recipe-section">';
+                if (recipe.prepTime) html += `⏱️ Vorbereitung: ${recipe.prepTime} Min. `;
+                if (recipe.cookTime) html += `🔥 Koch-Zeit: ${recipe.cookTime} Min. `;
+                if (recipe.servings) html += `👥 Portionen: ${recipe.servings}`;
+                html += '</div>';
+            }
+
+            // Ingredients
+            if (recipe.ingredients && recipe.ingredients.length > 0) {
+                html += '<div class="recipe-section"><h4>🛒 Zutaten:</h4><ul>';
+                recipe.ingredients.forEach(ing => {
+                    const amount = ing.amount || '';
+                    const unit = ing.unit || '';
+                    const name = ing.name || '';
+                    html += `<li>${amount} ${unit} ${name}</li>`;
+                });
+                html += '</ul></div>';
+            }
+
+            // Instructions
+            if (recipe.instructions && recipe.instructions.length > 0) {
+                html += '<div class="recipe-section"><h4>👨‍🍳 Zubereitung:</h4><ul>';
+                recipe.instructions.forEach((instruction, index) => {
+                    html += `<li>${index + 1}. ${instruction}</li>`;
+                });
+                html += '</ul></div>';
+            }
+
+            recipeContent.innerHTML = html;
+        }
     </script>
 </body>
 </html>

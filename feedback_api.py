@@ -13,6 +13,7 @@ from pathlib import Path
 from functools import wraps
 import time
 from dotenv import load_dotenv
+import requests
 
 # Load environment variables from .env file
 load_dotenv()
@@ -23,6 +24,10 @@ app = Flask(__name__)
 SECRET_KEY = os.getenv('FEEDBACK_SECRET_KEY')
 if not SECRET_KEY:
     raise ValueError("FEEDBACK_SECRET_KEY environment variable must be set!")
+
+# Cookbook API configuration
+COOKBOOK_API_URL = os.getenv('COOKBOOK_API_URL', 'https://cookbook-v3.vercel.app/api/remote')
+COOKBOOK_OPENAI_KEY = os.getenv('OPENAI_API_KEY')  # Reuse the same OpenAI key
 
 # File paths
 BASE_DIR = Path(__file__).parent
@@ -292,6 +297,111 @@ def internal_error(e):
     return render_template('error.html',
                           error_code=500,
                           error_message="Ein interner Fehler ist aufgetreten."), 500
+
+
+@app.route('/api/import-recipe', methods=['POST'])
+@rate_limit
+def import_recipe():
+    """Import a cooking idea into the cookbook app"""
+    try:
+        data = request.json
+
+        # Validate required fields
+        if not data or 'idea_id' not in data or 'signature' not in data:
+            return jsonify({'error': 'Fehlende Pflichtfelder.'}), 400
+
+        idea_id = data['idea_id']
+        signature = data['signature']
+
+        # Verify signature
+        if not verify_signature(idea_id, signature):
+            return jsonify({'error': 'Ungültige Anfrage.'}), 403
+
+        # Parse category - only allow cooking
+        try:
+            category = idea_id.split('_')[0]
+        except (IndexError, ValueError):
+            return jsonify({'error': 'Ungültige Ideen-ID.'}), 400
+
+        if category != 'cooking':
+            return jsonify({'error': 'Import ist nur für Koch-Ideen verfügbar.'}), 400
+
+        filepath = FILE_MAP[category]
+
+        # Find the cooking idea
+        if not filepath.exists():
+            return jsonify({'error': 'Datei nicht gefunden.'}), 404
+
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                ideas = json.load(f)
+
+            idea_text = None
+            for idea in ideas:
+                if idea.get('id') == idea_id:
+                    idea_text = idea.get('challenge', '')
+                    break
+
+            if not idea_text:
+                return jsonify({'error': 'Koch-Idee nicht gefunden.'}), 404
+
+            # Prepare request to cookbook API
+            cookbook_payload = {
+                'text': idea_text
+            }
+
+            # Add API key if available
+            if COOKBOOK_OPENAI_KEY:
+                cookbook_payload['apiKey'] = COOKBOOK_OPENAI_KEY
+
+            # Call the cookbook API
+            app.logger.info(f"Calling cookbook API at {COOKBOOK_API_URL}")
+            response = requests.post(
+                COOKBOOK_API_URL,
+                json=cookbook_payload,
+                timeout=30  # 30 second timeout
+            )
+
+            # Check if request was successful
+            if response.status_code != 200:
+                error_msg = 'Fehler beim Importieren in das Kochbuch.'
+                try:
+                    error_data = response.json()
+                    if 'error' in error_data:
+                        error_msg = error_data['error']
+                except:
+                    pass
+                app.logger.error(f"Cookbook API error: {response.status_code} - {response.text}")
+                return jsonify({'error': error_msg}), 500
+
+            # Parse response
+            cookbook_response = response.json()
+
+            if not cookbook_response.get('success'):
+                return jsonify({
+                    'error': 'Das Kochbuch konnte das Rezept nicht verarbeiten.'
+                }), 500
+
+            # Return the parsed recipe
+            return jsonify({
+                'status': 'success',
+                'message': 'Rezept erfolgreich importiert!',
+                'recipe': cookbook_response.get('recipe', {})
+            })
+
+        except json.JSONDecodeError:
+            return jsonify({'error': 'Fehler beim Lesen der Datei.'}), 500
+        except requests.Timeout:
+            return jsonify({'error': 'Timeout beim Importieren. Bitte versuche es erneut.'}), 504
+        except requests.RequestException as e:
+            app.logger.error(f"Request error: {str(e)}")
+            return jsonify({'error': 'Verbindungsfehler zum Kochbuch-Server.'}), 503
+
+    except Exception as e:
+        app.logger.error(f"Error importing recipe: {str(e)}")
+        return jsonify({
+            'error': 'Ein unerwarteter Fehler ist aufgetreten.'
+        }), 500
 
 
 if __name__ == '__main__':
