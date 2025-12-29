@@ -101,10 +101,10 @@ Press `Ctrl+C` to stop the Flask app.
 
 ```bash
 # Download the latest version
-wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64
 
 # Make it executable
-chmod +x cloudflared-linux-amd64
+chmod +x cloudflared-linux-arm64
 
 # Move to a system directory (optional but recommended)
 sudo mv cloudflared-linux-amd64 /usr/local/bin/cloudflared

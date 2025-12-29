@@ -55,7 +55,7 @@ Die Idee sollte beinhalten:
 
 Halte es abwechslungsreich, saisonal wenn möglich, und für Hobbyköche machbar.{context}
 
-WICHTIG: Erstelle eine NEUE und EINZIGARTIGE Idee, die sich von den bisherigen unterscheidet."""
+WICHTIG: Erstelle eine NEUE und EINZIGARTIGE Idee, die sich von den bisherigen unterscheidet. An geraden Tagen generiere eine fleischlose Variante, an ungeraden eine mit Fleisch."""
     },
     "diy": {
         "name": "DIY-Projekt",
@@ -70,9 +70,9 @@ Die Idee sollte beinhalten:
 4. Kurze Anleitung oder wichtige Schritte
 5. Tipps zur Haltbarkeit und mögliche Variationen
 
-Halte es kreativ, machbar und saisonal passend. Fokus ausschließlich auf essbare/trinkbare Produkte: Marmeladen, Konfitüren, eingelegtes Gemüse/Obst, Sirups, Limonaden, Gewürzmischungen, Aufstriche, Pesto, fermentierte Produkte, Kräuteröle, etc.{context}
+Halte es kreativ, machbar und saisonal passend. Fokus ausschließlich auf essbare/trinkbare Produkte: Marmeladen, Konfitueren, eingelegtes Gem�uese/Obst, Sirups, Limonaden, Gewuerzmischungen, Aufstriche, Pesto, fermentierte Produkte, Kräuteröle, etc.{context}
 
-WICHTIG: Erstelle eine NEUE und EINZIGARTIGE Idee, die sich von den bisherigen unterscheidet."""
+WICHTIG: Erstelle eine NEUE und EINZIGARTIGE Idee, die sich von den bisherigen unterscheidet. Schreib die Ideen in Oesterreichischem Deutsch."""
     }
 }
 
@@ -225,12 +225,12 @@ def generate_idea(category_key, previous_challenges):
     try:
         # Call GPT API
         response = client.chat.completions.create(
-            model="gpt-5-mini"‚
+            model="gpt-5-mini",
             messages=[
                 {"role": "system", "content": category["system_prompt"]},
                 {"role": "user", "content": prompt}
             ],
-            max_completion_tokens=1500,
+            max_completion_tokens=3000,
             temperature=1
         )
 
