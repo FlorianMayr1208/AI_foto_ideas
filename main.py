@@ -37,7 +37,7 @@ Die Herausforderung sollte beinhalten:
 
 Halte es unterhaltsam, erreichbar und geeignet für Fotografen aller Erfahrungsstufen.{context}
 
-WICHTIG: Erstelle eine NEUE und EINZIGARTIGE Herausforderung, die sich von den bisherigen unterscheidet."""
+WICHTIG: Erstelle eine NEUE und EINZIGARTIGE Herausforderung, die sich von den bisherigen unterscheidet. Schreib die Ideen in Oesterreichischem Deutsch."""
     },
     "cooking": {
         "name": "Koch-Idee",
@@ -53,9 +53,9 @@ Die Idee sollte beinhalten:
 4. Besondere Tipps oder Variationen
 5. Schwierigkeitsgrad und ungefähre Zeit
 
-Halte es abwechslungsreich, saisonal wenn möglich, und für Hobbyköche machbar.{context}
+Halte es abwechslungsreich, saisonal wenn möglich (aber nicht gezwungen), und für Hobbyköche machbar.{context}
 
-WICHTIG: Erstelle eine NEUE und EINZIGARTIGE Idee, die sich von den bisherigen unterscheidet. An geraden Tagen generiere eine fleischlose Variante, an ungeraden eine mit Fleisch."""
+WICHTIG: Erstelle eine NEUE und EINZIGARTIGE Idee, die sich von den bisherigen unterscheidet und unterschiedliche Zutaten nutzen. An geraden Tagen generiere eine fleischlose Variante, an ungeraden eine mit Fleisch. Schreib die Ideen in Oesterreichischem Deutsch."""
     },
     "diy": {
         "name": "DIY-Projekt",
@@ -70,9 +70,9 @@ Die Idee sollte beinhalten:
 4. Kurze Anleitung oder wichtige Schritte
 5. Tipps zur Haltbarkeit und mögliche Variationen
 
-Halte es kreativ, machbar und saisonal passend. Fokus ausschließlich auf essbare/trinkbare Produkte: Marmeladen, Konfitueren, eingelegtes Gemüese/Obst, Sirups, Limonaden, Gewuerzmischungen, Aufstriche, Pesto, fermentierte Produkte, Kräuteröle, etc.{context}
+Halte es kreativ, machbar und gerne aber nicht zwingend saisonal passend. Fokus ausschließlich auf essbare/trinkbare Produkte: Marmeladen, Konfitueren, eingelegtes Gemüese/Obst, Sirups, Limonaden, Gewuerzmischungen, Aufstriche, Pesto, fermentierte Produkte, Kräuteröle, etc.{context}
 
-WICHTIG: Erstelle eine NEUE und EINZIGARTIGE Idee, die sich von den bisherigen unterscheidet. Schreib die Ideen in Oesterreichischem Deutsch."""
+WICHTIG: Erstelle eine NEUE und EINZIGARTIGE Idee, die sich von den bisherigen unterscheidet und unterschiedliche Zutaten nutzen. Schreib die Ideen in Oesterreichischem Deutsch."""
     }
 }
 
