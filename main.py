@@ -149,12 +149,12 @@ def generate_idea(category_key, previous_challenges):
     # Get current date for context
     today = datetime.now().strftime("%B %d, %Y")
 
-    # Prepare context from previous challenges (last 10) AND their feedback
+    # Prepare context from previous challenges (last 30) AND their feedback
     context = ""
     feedback_context = ""
 
     if previous_challenges:
-        recent_challenges = previous_challenges[-10:]  # Get last 10 challenges
+        recent_challenges = previous_challenges[-30:]  # Get last 30 challenges
         context = "\n\nBisher generierte Ideen (bitte NICHT wiederholen):\n"
 
         # Collect feedback insights
@@ -230,7 +230,7 @@ def generate_idea(category_key, previous_challenges):
                 {"role": "system", "content": category["system_prompt"]},
                 {"role": "user", "content": prompt}
             ],
-            max_completion_tokens=3000,
+            max_completion_tokens=5000,
             temperature=1
         )
 
